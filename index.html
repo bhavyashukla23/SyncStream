@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSE</title>
+</head>
+
+<body>
+  <div>
+    <label for="document-text">Document Text:</label>
+    <input type="text" id="document-text" />
+    <!-- <button onclick="updateDocument()">Update</button> -->
+  </div>
+
+  <div id="message-container"></div>
+
+  <script>
+    const eventSource = new EventSource('http://localhost:3001/events');
+    const documentTextElement = document.getElementById('document-text');
+
+    documentTextElement.addEventListener('input', function (event) {
+      const newText = event.target.value;
+
+      const updateEvent = new CustomEvent('updateDocument', {
+        detail: { text: newText }
+      });
+
+      document.dispatchEvent(updateEvent);
+    });
+
+    eventSource.onmessage = function (event) {
+      const message = JSON.parse(event.data);
+      const messageContainer = document.getElementById('message-container');
+      // messageContainer.innerHTML = `Current Document Text: ${message.text}`;
+      documentTextElement.value = message.text;
+    };
+
+    document.addEventListener('updateDocument', function (event) {
+      const newText = event.detail.text;
+      fetch('http://localhost:3001/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ text: newText })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            console.log('Document updated successfully.');
+          } else {
+            console.error('Failed to update document.');
+          }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+  </script>
+</body>
+
+</html>
+
